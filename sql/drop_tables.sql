@@ -1,0 +1,1 @@
+DROP TABLE granule_with_dot, granule_with_lane, uniform_granule, complex_granule, intergranular_lane CASCADE; 
