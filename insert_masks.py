@@ -1,6 +1,7 @@
 import os
 import sys
 import numpy as np
+from tqdm import tqdm
 from datetime import datetime
 from dotenv import load_dotenv
 from geoalchemy2 import WKTElement
@@ -18,7 +19,7 @@ def main():
     masks_paths = [p for p in os.listdir(masks_root) if p.endswith('.npy')]
     
     with engine.connect() as conn:
-        for mask_path in masks_paths:
+        for mask_path in tqdm(masks_paths):
             time_str = mask_path[4:27]
             time = datetime.strptime(time_str, '%Y_%m_%dT%H_%M_%S_%f')
             mask = np.load(os.path.join(masks_root, mask_path))
@@ -32,7 +33,6 @@ def main():
                 """
                 conn.execute(text(query))
         conn.commit()
-    print('done')
 
 if __name__ == '__main__':
     main()
