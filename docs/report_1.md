@@ -12,7 +12,7 @@ WITH time_intervals AS (
     FROM granule_1
 ),
 clustered_granules AS (
-    -- Cluster bubbles within each minutely interval by type
+    -- Cluster granules within each minutely interval by type
     SELECT 
         date_trunc('minute', g.time) AS interval_start,
         unnest(ST_ClusterWithin(g.shape, 100)) AS cluster_geom
