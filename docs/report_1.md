@@ -8,28 +8,58 @@
 ```
 WITH time_intervals AS (
     SELECT DISTINCT date_trunc('minute', time) AS interval_start
-    FROM bubble_1
+    FROM granule_1
 ),
-clustered_bubbles AS (
+clustered_granules AS (
     SELECT 
-        date_trunc('minute', b.time) AS interval_start,
-        b.type,
-        unnest(ST_ClusterWithin(b.shape, 100)) AS cluster_geom
-    FROM bubble_1 b
-    JOIN time_intervals ti ON date_trunc('minute', b.time) = ti.interval_start
-    GROUP BY interval_start, b.type
+        date_trunc('minute', g.time) AS interval_start,
+        unnest(ST_ClusterWithin(g.shape, 100)) AS cluster_geom
+    FROM granule_1 g
+    JOIN time_intervals ti ON date_trunc('minute', g.time) = ti.interval_start
+    GROUP BY interval_start
 )
 SELECT 
     interval_start,
     type,
-    cluster_geom,  -- This is the geometry of each cluster
+    cluster_geom, 
     ST_Centroid(cluster_geom) AS cluster_center,
     ST_Area(cluster_geom) AS cluster_area
-FROM clustered_bubbles;
+FROM clustered_granules;
 
 ```
 
 - Temporal Hotspots: Identify periods when a certain type is most densely present, giving insights into the timing of high-density occurrences.
+
+```
+WITH minutely_counts AS (
+    SELECT
+        date_trunc('minute', time) AS interval_start,
+        COUNT(*) AS granule_count,
+        ST_Area(ST_ConvexHull(ST_Collect(shape))) AS area_of_spread
+    FROM granule_type
+    GROUP BY interval_start
+),
+density_by_interval AS (
+    SELECT
+        interval_start,
+        granule_count,
+        area_of_spread,
+        CASE 
+            WHEN area_of_spread > 0 THEN granule_count / area_of_spread
+            ELSE NULL 
+        END AS density
+    FROM minutely_counts
+)
+SELECT 
+    interval_start,
+    granule_count,
+    area_of_spread,
+    density
+FROM density_by_interval
+WHERE density IS NOT NULL
+ORDER BY density DESC
+LIMIT 10;
+```
 
 ### 1.2. Transformation Events (Probabilistic)
 
