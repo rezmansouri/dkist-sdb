@@ -17,7 +17,7 @@ def main():
     
     masks_root = sys.argv[1]
     masks_paths = [p for p in os.listdir(masks_root) if p.endswith('.npy')]
-    
+        
     with engine.connect() as conn:
         for mask_path in tqdm(masks_paths):
             time_str = mask_path[4:27]
@@ -27,12 +27,9 @@ def main():
             for _, row in gdf.iterrows():
                 wkt_element = WKTElement(row['geometry'].ExportToWkt(), srid=4326)
                 table = table_dict[row['value']]
-                query = f"""
-                    INSERT INTO {table} (time, shape)
-                    VALUES ('{time}', ST_GeomFromText('{wkt_element}', 4326));
-                """
+                query = f"""INSERT INTO {table} (time, shape) VALUES ('{time}', ST_GeomFromText('{wkt_element}', 4326));"""
                 conn.execute(text(query))
-        conn.commit()
+            conn.commit()
 
 if __name__ == '__main__':
     main()
