@@ -5,6 +5,30 @@
 
 - Cluster by Time Intervals: Perform spatial clustering for each type within specific time intervals. This can reveal how granules of the same type cluster or disperse in certain areas over time.
 
+```
+WITH time_intervals AS (
+    SELECT DISTINCT date_trunc('minute', time) AS interval_start
+    FROM bubble_1
+),
+clustered_bubbles AS (
+    SELECT 
+        date_trunc('minute', b.time) AS interval_start,
+        b.type,
+        unnest(ST_ClusterWithin(b.shape, 100)) AS cluster_geom
+    FROM bubble_1 b
+    JOIN time_intervals ti ON date_trunc('minute', b.time) = ti.interval_start
+    GROUP BY interval_start, b.type
+)
+SELECT 
+    interval_start,
+    type,
+    cluster_geom,  -- This is the geometry of each cluster
+    ST_Centroid(cluster_geom) AS cluster_center,
+    ST_Area(cluster_geom) AS cluster_area
+FROM clustered_bubbles;
+
+```
+
 - Temporal Hotspots: Identify periods when a certain type is most densely present, giving insights into the timing of high-density occurrences.
 
 ### 1.2. Transformation Events (Probabilistic)
