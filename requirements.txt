@@ -14,7 +14,7 @@ decorator==5.1.1
 exceptiongroup==1.2.2
 executing==2.1.0
 fonttools==4.54.1
-GDAL==3.9.3
+GDAL==3.10.0
 GeoAlchemy2==0.15.2
 geopandas==1.0.1
 importlib_metadata==8.5.0

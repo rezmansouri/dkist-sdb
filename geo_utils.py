@@ -1,4 +1,3 @@
-import re
 import geopandas as gpd
 from osgeo import gdal, ogr
 
@@ -8,6 +7,14 @@ table_dict = {
     2: 'granule_with_dot',
     3: 'granule_with_lane',
     4: 'complex_granule',
+}
+
+og_table_dict = {
+    0: 'og_intergranular_lane',
+    1: 'og_uniform_granule',
+    2: 'og_granule_with_dot',
+    3: 'og_granule_with_lane',
+    4: 'og_complex_granule',
 }
 
 def array_to_raster(array):
