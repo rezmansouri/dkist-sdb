@@ -20,28 +20,28 @@ previous_objects AS (
         shape, 
         'g1' AS table_name 
     FROM public.g1
-    WHERE time = 'timestamp' AND tracked_id IS NULL
+    WHERE time = 'timestamp'
     UNION ALL
     SELECT 
         id, 
         shape, 
         'g2' AS table_name 
     FROM public.g2
-    WHERE time = 'timestamp' AND tracked_id IS NULL
+    WHERE time = 'timestamp'
     UNION ALL
     SELECT
         id, 
         shape, 
         'g3' AS table_name 
     FROM public.g3
-    WHERE time = 'timestamp' AND tracked_id IS NULL
+    WHERE time = 'timestamp'
     UNION ALL
     SELECT
         id, 
         shape, 
         'g4' AS table_name 
     FROM public.g4
-    WHERE time = 'timestamp' AND tracked_id IS NULL
+    WHERE time = 'timestamp'
 )
 SELECT
     previous_objects.id AS previous_id,
@@ -53,7 +53,7 @@ WHERE ST_Intersects(current_object.shape, previous_objects.shape);
 """
 
 T1_QUERY = """
-SELECT id, tracked_id FROM g1
+SELECT id FROM g1
     WHERE
     time = 'timestamp'
     ORDER BY id;
@@ -102,10 +102,10 @@ def main():
     """
     tracked_id_seq = 1
     update_dict = {
-        "uniform_granule": [],
-        "complex_granule": [],
-        "granule_with_dot": [],
-        "granule_with_lane": [],
+        "uniform_granule": dict(),
+        "complex_granule": dict(),
+        "granule_with_dot": dict(),
+        "granule_with_lane": dict() 
     }
     load_dotenv("./conf.env")
     conn_str = os.getenv("CONN_STR")
@@ -113,7 +113,7 @@ def main():
     conn = engine.connect()
     result = conn.execute(text(TIME_QUERY))
     times = [str(r[0]) for r in result]
-    for i in trange(len(times), leave=False):
+    for i in trange(len(times[:1]), leave=False):
         time_1 = times[i]
         if i == len(times) - 1:
             time_0 = str(datetime.strptime(time_1, '%Y-%m-%d %H:%M:%S') + INTERVAL)
@@ -123,11 +123,12 @@ def main():
             query = T1_QUERY.replace("g1", table_t1).replace("timestamp", time_1)
             result = conn.execute(text(query))
             t1s = result.fetchall()
-            for id_t1, tracked_id_t1 in t1s:
-                if tracked_id_t1 is None:
-                    update_dict[table_t1].append((id_t1, tracked_id_seq))
-                    tracked_id_t1 = tracked_id_seq
+            for t1 in t1s:
+                id_t1 = t1[0]
+                if id_t1 not in update_dict[table_t1]:
+                    update_dict[table_t1][id_t1] = tracked_id_seq
                     tracked_id_seq += 1
+                tracked_id_t1 = update_dict[table_t1][id_t1]
                 query = (
                     TRACK_QUERY.replace("thisid", str(id_t1))
                     .replace("timestamp", time_0)
@@ -144,7 +145,7 @@ def main():
                     continue
                 scores = [r[1] * CHANGE_CLASS_WEIGHTS[r[2]][table_t1] for r in rows]
                 id_t0, _, table_t0 = rows[np.argmax(scores)]
-                update_dict[table_t0].append((id_t0, tracked_id_t1))
+                update_dict[table_t0][id_t0] = tracked_id_t1
     conn.close()
     for table in update_dict:
         with open(f"track_out/{table}.json", "w", encoding="utf-8") as file:

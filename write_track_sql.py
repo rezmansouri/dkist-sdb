@@ -11,16 +11,21 @@ def main():
     with open("track_out/uniform_granule.json", "r", encoding="utf-8") as f:
         uniform_granule = json.load(f)
 
-    complex_granule_query = ""
-    where_clause = ""
-
-    for id, tracked_id in complex_granule:
-        complex_granule_query += f'\n\tWHEN id={id} THEN {tracked_id}'
-        where_clause += f'{id}, '
+    complex_granule_items = list(complex_granule.items())
+    complex_granule_items_length = len(complex_granule_items)
+    partition_size = complex_granule_items_length // 10
+    for i in range(0, 12):
         
-    complex_granule_query = 'UPDATE complex_granule SET tracked_id = CASE' + complex_granule_query + ' END WHERE id IN (' + where_clause[:-2] + ');'
-    with open('sql/track_complex_granule.sql', 'w', encoding='utf-8') as file:
-        file.write(complex_granule_query)
+        complex_granule_query = ""
+        where_clause = ""
+
+        for id, tracked_id in complex_granule_items[i*partition_size:(i+1)*partition_size]:
+            complex_granule_query += f'\n\tWHEN id={id} THEN {tracked_id}'
+            where_clause += f'{id}, '
+            
+        complex_granule_query = 'UPDATE complex_granule SET tracked_id = CASE' + complex_granule_query + ' END WHERE id IN (' + where_clause[:-2] + ');'
+        with open(f'sql/track_complex_granule_{i}.sql', 'w', encoding='utf-8') as file:
+            file.write(complex_granule_query)
 
     granule_with_dot_query = ""
     where_clause = ""
